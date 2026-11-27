@@ -19,76 +19,13 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Acesse o sistema de gestão TanksBR." },
     ],
   }),
-  component: import.meta.env.PROD
-    ? import.meta.env.VITE_PREVIEW_LOGIN_ENABLED === "true"
-      ? PreviewAuthPage
-      : ProductionAuthRedirect
-    : AuthPage,
+  component: import.meta.env.PROD ? ProductionAuthRedirect : AuthPage,
 });
 
 function ProductionAuthRedirect() {
   const target = new URLSearchParams(window.location.search).get("return_path") || "/alocacoes";
   window.location.replace(portalLoginUrl(target));
   return null;
-}
-
-// Login direto, autenticado pelo mesmo Supabase, somente na preview desta branch.
-// Nao permite cadastro publico nem altera o SSO da producao.
-function PreviewAuthPage() {
-  const returnPath = safeReturnPath(new URLSearchParams(window.location.search).get("return_path"));
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) window.location.replace(returnPath);
-    });
-  }, [returnPath]);
-
-  async function entrar(event: React.FormEvent) {
-    event.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast.error("Não foi possível entrar", { description: translateAuthError(error.message) });
-      return;
-    }
-    window.location.replace(returnPath);
-  }
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Homologação — Obras Control</CardTitle>
-          <CardDescription>Entre com suas credenciais existentes para testar a versão de prévia.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={entrar} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="preview-email">E-mail</Label>
-              <Input id="preview-email" type="email" autoComplete="username" required
-                value={email} onChange={(event) => setEmail(event.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="preview-password">Senha</Label>
-              <Input id="preview-password" type="password" autoComplete="current-password" required
-                value={password} onChange={(event) => setPassword(event.target.value)} />
-            </div>
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Entrando…" : "Entrar na homologação"}
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Os registros desta prévia usam o banco existente. Não cadastre dados de teste reais
-              nem conclua lançamentos até a homologação do SQL.
-            </p>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  );
 }
 
 function translateAuthError(message: string): string {
