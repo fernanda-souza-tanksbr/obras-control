@@ -81,6 +81,7 @@ test("afastamento aceita periodo integralmente futuro; atestado e horas seguem b
   assert.match(componente, /if \(!permiteDataFutura\)/);
   assert.match(telaDiaria, /permiteAfastamentoFuturo = watchTipoRegistro === "falta" && watchFaltaTipo === "afastamento"/);
   assert.match(telaDiaria, /if \(!\(v.tipo_registro === "falta" && v.falta_tipo === "afastamento"\)\)/);
+  assert.match(telaDiaria, /if \(!\(v.tipo_registro === "falta" && v.falta_tipo === "afastamento" && v.data > today\)\)/);
 });
 
 test("futuro de afastamento nao cria alocacoes ou horas e preserva conflitos existentes", () => {
