@@ -16,7 +16,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
       # O lockfile da main esta incompleto (lru-cache); instalar sem alterá-lo no repositório.
       - run: npm install --no-save --package-lock=false --no-audit --no-fund
