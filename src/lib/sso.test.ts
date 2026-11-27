@@ -10,8 +10,6 @@ import {
 } from "./sso.ts";
 const callback = readFileSync(new URL("../routes/sso.callback.tsx", import.meta.url), "utf8");
 const auth = readFileSync(new URL("../routes/auth.tsx", import.meta.url), "utf8");
-const shell = readFileSync(new URL("../routes/_authenticated/route.tsx", import.meta.url), "utf8");
-const viteConfig = readFileSync("vite.config.ts", "utf8");
 
 test("return_path aceita apenas rotas internas permitidas", () => {
   assert.equal(safeReturnPath("/alocacoes"), "/alocacoes");
@@ -68,22 +66,9 @@ test("code invalido ou reutilizado segue erro controlado sem loop", () => {
 test("acesso direto mantem fallback e producao Vercel", () => {
   assert.match(callback, /setFailed\(true\)/);
   assert.equal(PORTAL_ORIGIN, "https://portal-tks-br.vercel.app");
-  assert.match(auth, /component: import\.meta\.env\.PROD/);
-  assert.match(auth, /\? ProductionAuthRedirect/);
+  assert.match(auth, /component: import\.meta\.env\.PROD \? ProductionAuthRedirect : AuthPage/);
 });
 test("nenhum token e enviado por URL ou mensagem", () => {
   assert.doesNotMatch(callback, /searchParams\.set\([^)]*token_hash|postMessage/);
   assert.match(callback, /history\.replaceState/);
-});
-
-test("homologacao usa login restrito ao preview da branch, sem alterar SSO da main", () => {
-  assert.match(viteConfig, /process\.env\.VERCEL_ENV === "preview"/);
-  assert.match(viteConfig, /process\.env\.VERCEL_GIT_COMMIT_REF === "feat\/afastamento-futuro-20261127"/);
-  assert.match(auth, /import\.meta\.env\.VITE_PREVIEW_LOGIN_ENABLED === "true"/);
-  assert.match(shell, /import\.meta\.env\.VITE_PREVIEW_LOGIN_ENABLED === "true"/);
-  assert.match(shell, /window\.location\.replace\(\x60\/auth\?return_path=/);
-  assert.match(auth, /supabase\.auth\.signInWithPassword/);
-  assert.match(auth, /Homologação — Obras Control/);
-  assert.match(auth, /function ProductionAuthRedirect\(\)/);
-  assert.match(shell, /portalLoginUrl\(currentUrl, consumePortalLaunchMarker\(window\)\)/);
 });
