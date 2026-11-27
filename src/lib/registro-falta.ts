@@ -14,6 +14,10 @@ export const CLASSIFICACOES_FALTA = [
 export type FaltaTipo = (typeof CLASSIFICACOES_FALTA)[number]["value"];
 export type TipoRegistroPeriodo = TipoRegistro | Extract<FaltaTipo, "atestado" | "afastamento">;
 
+export function afastamentoPermiteDataFutura(tipo: string | null | undefined) {
+  return tipo === "afastamento";
+}
+
 export function faltaPermitePeriodo(tipo: string | null | undefined) {
   return tipo === "atestado" || tipo === "afastamento";
 }

@@ -40,6 +40,7 @@ import {
 import { sugerirEspecialidadePeriodo } from "@/lib/resolver-especialidade-ajudante";
 import {
   enumerarDiasCorridos,
+  afastamentoPermiteDataFutura,
   faltaPermitePeriodo,
   mensagemErroRegistro,
   normalizarTipoRegistroPeriodo,
@@ -51,6 +52,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CalendarioAfastamento } from "@/components/CalendarioAfastamento";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -152,6 +154,7 @@ export function AlocarPeriodoDialog({ obraId, obraNome }: Props) {
   );
   const ausenciaPlanejada = registroEhAusenciaPlanejada({ tipo_registro: tipoRegistro });
   const faltaPeriodo = faltaPermitePeriodo(tipoRegistro);
+  const permiteDataFutura = ausenciaPlanejada || afastamentoPermiteDataFutura(tipoRegistro);
   const ausenciaPorPeriodo = ausenciaPlanejada || faltaPeriodo;
   const tipoRegistroNormalizado = normalizarTipoRegistroPeriodo(tipoRegistro).tipoRegistro;
   const [step, setStep] = useState<"form" | "conflitos">("form");
@@ -379,8 +382,10 @@ export function AlocarPeriodoDialog({ obraId, obraNome }: Props) {
       return;
     }
     try {
-      validarDataLancamento(dataInicio, "alocacao");
-      validarDataLancamento(dataFim, "alocacao");
+      if (!permiteDataFutura) {
+        validarDataLancamento(dataInicio, "alocacao");
+        validarDataLancamento(dataFim, "alocacao");
+      }
     } catch (error) {
       toast.error((error as Error).message);
       return;
@@ -474,8 +479,10 @@ export function AlocarPeriodoDialog({ obraId, obraNome }: Props) {
   ) {
     setSalvando(true);
     try {
-      validarDataLancamento(dataInicio, "alocacao");
-      validarDataLancamento(dataFim, "alocacao");
+      if (!permiteDataFutura) {
+        validarDataLancamento(dataInicio, "alocacao");
+        validarDataLancamento(dataFim, "alocacao");
+      }
       const competenciasBloqueadas = new Set(fechadas.map((c) => c.competencia));
       const datasBloqueadasCompetencia = new Set(
         dias.filter((d) => competenciasBloqueadas.has(calcularCompetencia(d).competencia)),
@@ -536,18 +543,22 @@ export function AlocarPeriodoDialog({ obraId, obraNome }: Props) {
               datas: [data],
             });
             if (conflito.length > 0) throw new Error(TITULO_CONFLITO_ALOCACAO);
-            const { error: alocacaoErro } = await supabase.from("alocacoes").upsert(
-              [
-                {
-                  funcionario_id: funcionarioId,
-                  obra_id: obraId,
-                  data,
-                  created_by: user?.id ?? null,
-                },
-              ],
-              { onConflict: "funcionario_id,obra_id,data", ignoreDuplicates: true },
-            );
-            if (alocacaoErro) throw alocacaoErro;
+            // Afastamento futuro registra apenas ausencia, sem criar alocacao futura.
+            // Dias passados/atuais preservam a vinculacao existente ao centro de custo.
+            if (!(afastamentoPermiteDataFutura(tipoRegistro) && data > today)) {
+              const { error: alocacaoErro } = await supabase.from("alocacoes").upsert(
+                [
+                  {
+                    funcionario_id: funcionarioId,
+                    obra_id: obraId,
+                    data,
+                    created_by: user?.id ?? null,
+                  },
+                ],
+                { onConflict: "funcionario_id,obra_id,data", ignoreDuplicates: true },
+              );
+              if (alocacaoErro) throw alocacaoErro;
+            }
             const { error: registroErro } = await supabase.rpc("obras_salvar_registro_horas", {
               p_id: null,
               p_funcionario_id: funcionarioId,
@@ -831,23 +842,36 @@ export function AlocarPeriodoDialog({ obraId, obraNome }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>De</Label>
-                <Input
-                  type="date"
-                  max={ausenciaPlanejada ? undefined : today}
-                  value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
-                />
+                {tipoRegistro === "afastamento" ? (
+                  <CalendarioAfastamento label="De" value={dataInicio} onChange={setDataInicio} />
+                ) : (
+                  <Input
+                    type="date"
+                    max={permiteDataFutura ? undefined : today}
+                    value={dataInicio}
+                    onChange={(e) => setDataInicio(e.target.value)}
+                  />
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Até</Label>
-                <Input
-                  type="date"
-                  max={ausenciaPlanejada ? undefined : today}
-                  value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
-                />
+                {tipoRegistro === "afastamento" ? (
+                  <CalendarioAfastamento label="Até" value={dataFim} onChange={setDataFim} />
+                ) : (
+                  <Input
+                    type="date"
+                    max={permiteDataFutura ? undefined : today}
+                    value={dataFim}
+                    onChange={(e) => setDataFim(e.target.value)}
+                  />
+                )}
               </div>
             </div>
+            {tipoRegistro === "afastamento" && (
+              <p className="text-xs text-muted-foreground" role="status">
+                Datas futuras liberadas para Afastamento. Selecione as datas nos calendários.
+              </p>
+            )}
             <div className="rounded-md border bg-muted/30 p-3 text-sm">
               {intervaloInvalido ? (
                 <span className="text-rose-600">

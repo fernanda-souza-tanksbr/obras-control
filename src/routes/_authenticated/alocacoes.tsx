@@ -819,6 +819,8 @@ function AlocacoesPage() {
     if (!funcionarioSelecionadoExigeEspecialidade) form.setValue("especialidade_ajudante", null);
   }, [form, funcionarioSelecionadoExigeEspecialidade]);
   const watchTipoRegistro = form.watch("tipo_registro");
+  const watchFaltaTipo = form.watch("falta_tipo");
+  const permiteAfastamentoFuturo = watchTipoRegistro === "falta" && watchFaltaTipo === "afastamento";
   const ausenciaPlanejada = registroEhAusenciaPlanejada({ tipo_registro: watchTipoRegistro });
   const watchDataFim = form.watch("data_fim");
   useEffect(() => {
@@ -898,7 +900,9 @@ function AlocacoesPage() {
         if (error) throw new Error(mensagemErroRegistro(error));
         return { tipoRegistro: v.tipo_registro, faltaTipo: null, hn: 0, he: 0 };
       }
-      validarDataLancamento(v.data, "horas");
+      if (!(v.tipo_registro === "falta" && v.falta_tipo === "afastamento")) {
+        validarDataLancamento(v.data, "horas");
+      }
       const falta = v.tipo_registro === "falta";
       const calculo = falta
         ? null
@@ -975,33 +979,37 @@ function AlocacoesPage() {
         return { tipoRegistro: v.tipo_registro, faltaTipo: v.falta_tipo, hn, he };
       }
 
-      const { error: alocErr } = await supabase.from("alocacoes").upsert(
-        [
-          {
-            funcionario_id: v.funcionario_id,
-            obra_id: v.obra_id,
-            data: v.data,
-            created_by: user?.id ?? null,
-            hora_entrada: falta ? null : v.hora_entrada,
-            hora_saida: falta ? null : v.hora_saida,
-            intervalo_padrao_minutos: v.intervalo_minutos,
-            especialidade_ajudante:
-              categoriaEhAjudante(funcionario?.categoria_mo) &&
-              competenciaUsaSegmentacaoMod(calcularCompetencia(v.data).competencia)
-                ? v.especialidade_ajudante
-                : null,
-          },
-        ],
-        { onConflict: "funcionario_id,obra_id,data", ignoreDuplicates: true },
-      );
-      if (alocErr) {
-        const erroAmigavel = erroBancoAlocacao(alocErr);
-        if (erroAmigavel) throw erroAmigavel;
-        throw new Error(
-          mensagemErroCompetenciaFechada(alocErr) ??
-            mensagemErroBancoAlocacao(alocErr) ??
-            alocErr.message,
+      // Afastamento futuro nao cria alocacao futura; grava apenas a falta sem horas.
+      if (!(v.tipo_registro === "falta" && v.falta_tipo === "afastamento" && v.data > today)) {
+        const { error: alocErr } = await supabase.from("alocacoes").upsert(
+          [
+            {
+              funcionario_id: v.funcionario_id,
+              obra_id: v.obra_id,
+              data: v.data,
+              created_by: user?.id ?? null,
+              hora_entrada: falta ? null : v.hora_entrada,
+              hora_saida: falta ? null : v.hora_saida,
+              intervalo_padrao_minutos: v.intervalo_minutos,
+              especialidade_ajudante:
+                categoriaEhAjudante(funcionario?.categoria_mo) &&
+                competenciaUsaSegmentacaoMod(calcularCompetencia(v.data).competencia)
+                  ? v.especialidade_ajudante
+                  : null,
+            },
+          ],
+          { onConflict: "funcionario_id,obra_id,data", ignoreDuplicates: true },
         );
+        if (alocErr) {
+          const erroAmigavel = erroBancoAlocacao(alocErr);
+          if (erroAmigavel) throw erroAmigavel;
+          throw new Error(
+            mensagemErroCompetenciaFechada(alocErr) ??
+              mensagemErroBancoAlocacao(alocErr) ??
+              alocErr.message,
+          );
+        }
+  
       }
 
       const { error: regErr } = await supabase.rpc("obras_salvar_registro_horas", {
@@ -1503,7 +1511,7 @@ function AlocacoesPage() {
                               <FormControl>
                                 <Input
                                   type="date"
-                                  max={ausenciaPlanejada ? undefined : today}
+                                  max={ausenciaPlanejada || permiteAfastamentoFuturo ? undefined : today}
                                   {...field}
                                   onChange={(event) => {
                                     field.onChange(event);

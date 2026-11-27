@@ -32,11 +32,12 @@ test("tipo de registro preserva Horas e Falta e adiciona Ferias e Folga de campo
 test("ausencias planejadas usam De/Ate, ocultam horas e aceitam futuro", () => {
   assert.match(tela, /ausenciaPlanejada \? "De" : "Data"/);
   assert.match(tela, /<FormLabel>Até<\/FormLabel>/);
-  assert.match(tela, /max=\{ausenciaPlanejada \? undefined : today\}/);
+  assert.match(tela, /max=\{ausenciaPlanejada \|\| permiteAfastamentoFuturo \? undefined : today\}/);
   assert.match(tela, /watchTipoRegistro === "horas"/);
   assert.match(tela, /obras_salvar_ausencia_planejada_periodo/);
   assert.match(alocarPeriodo, /obras_salvar_ausencia_planejada_periodo/);
   assert.match(alocarPeriodo, /enumerarDiasCorridos/);
+  assert.match(alocarPeriodo, /max=\{permiteDataFutura \? undefined : today\}/);
 });
 
 test("periodo corrido inclui sabado e domingo e aceita um unico dia", () => {
