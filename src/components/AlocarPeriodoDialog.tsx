@@ -842,6 +842,7 @@ export function AlocarPeriodoDialog({ obraId, obraNome }: Props) {
               <div className="space-y-1.5">
                 <Label>De</Label>
                 <Input
+                  key={permiteDataFutura ? "data-futura-liberada" : "data-futura-bloqueada"}
                   type="date"
                   max={permiteDataFutura ? undefined : today}
                   value={dataInicio}
@@ -858,6 +859,12 @@ export function AlocarPeriodoDialog({ obraId, obraNome }: Props) {
                 />
               </div>
             </div>
+            {tipoRegistro === "afastamento" && (
+              <p className="text-xs text-muted-foreground" role="status">
+                Datas futuras liberadas para Afastamento. Selecione o período nos calendários
+                ou digite as datas diretamente.
+              </p>
+            )}
             <div className="rounded-md border bg-muted/30 p-3 text-sm">
               {intervaloInvalido ? (
                 <span className="text-rose-600">
