@@ -103,3 +103,14 @@ test("futuro de afastamento nao cria alocacoes ou horas e preserva conflitos exi
   assert.match(migrationFuturo, /REVOKE ALL ON FUNCTION/);
   assert.doesNotMatch(migrationFuturo, /GRANT EXECUTE/);
 });
+
+
+test("guard de data futura protege futuras edicoes de horas e classificacao", () => {
+  assert.match(migrationFuturo, /DROP TRIGGER guard_data_nao_futura ON public\.registros_horas/);
+  assert.match(migrationFuturo, /BEFORE INSERT OR UPDATE OF data, tipo_registro, falta_tipo,/);
+  assert.match(migrationFuturo, /horas_normais, horas_extras, ausencia/);
+  assert.match(migrationFuturo, /TRIGGER_REGISTROS_HORAS_DIVERGENTE/);
+  assert.match(migrationFuturo, /VALIDACAO_TRIGGER_FUTURO_FALHOU/);
+  assert.doesNotMatch(migrationFuturo, /ALTER TABLE public\.alocacoes/);
+  assert.doesNotMatch(migrationFuturo, /DISABLE TRIGGER/);
+});
