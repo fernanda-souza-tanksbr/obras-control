@@ -77,7 +77,7 @@ test("afastamento aceita periodo integralmente futuro; atestado e horas seguem b
   for (const tipo of ["atestado", "horas", "falta", "outro"]) {
     assert.equal(afastamentoPermiteDataFutura(tipo), false);
   }
-  assert.match(componente, /max=\\{permiteDataFutura \? undefined : today\\}/);
+  assert.match(componente, /max=\{permiteDataFutura \? undefined : today\}/);
   assert.match(componente, /if \(!permiteDataFutura\)/);
   assert.match(telaDiaria, /permiteAfastamentoFuturo = watchTipoRegistro === "falta" && watchFaltaTipo === "afastamento"/);
   assert.match(telaDiaria, /if \(!\(v.tipo_registro === "falta" && v.falta_tipo === "afastamento"\)\)/);
