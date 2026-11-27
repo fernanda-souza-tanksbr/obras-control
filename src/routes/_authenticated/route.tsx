@@ -26,7 +26,11 @@ function Shell() {
   const currentUrl = useRouterState({ select: (state) => state.location.href });
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   if (authStatus === "unauthenticated" && !isLoggingOut) {
-    window.location.replace(portalLoginUrl(currentUrl, consumePortalLaunchMarker(window)));
+    if (import.meta.env.VITE_PREVIEW_LOGIN_ENABLED === "true") {
+      window.location.replace(`/auth?return_path=${encodeURIComponent(currentUrl)}`);
+    } else {
+      window.location.replace(portalLoginUrl(currentUrl, consumePortalLaunchMarker(window)));
+    }
     return null;
   }
   if (authStatus === "authenticated") consumePortalLaunchMarker(window);
