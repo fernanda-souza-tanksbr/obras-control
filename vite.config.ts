@@ -7,11 +7,16 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 const buildSha = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? "local";
+// Acesso de homologacao somente no deployment preview desta branch. Nunca na main.
+const previewLogin =
+  process.env.VERCEL_ENV === "preview" &&
+  process.env.VERCEL_GIT_COMMIT_REF === "feat/afastamento-futuro-20261127";
 
 export default defineConfig({
   vite: {
     define: {
       "import.meta.env.VITE_BUILD_SHA": JSON.stringify(buildSha),
+      "import.meta.env.VITE_PREVIEW_LOGIN_ENABLED": JSON.stringify(previewLogin ? "true" : "false"),
     },
   },
   tanstackStart: {
