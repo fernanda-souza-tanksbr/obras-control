@@ -18,7 +18,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
+      # O lockfile da main esta incompleto (lru-cache); instalar sem alterá-lo no repositório.
+      - run: npm install --no-save --package-lock=false --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
