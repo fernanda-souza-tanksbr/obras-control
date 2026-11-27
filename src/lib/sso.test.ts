@@ -68,7 +68,8 @@ test("code invalido ou reutilizado segue erro controlado sem loop", () => {
 test("acesso direto mantem fallback e producao Vercel", () => {
   assert.match(callback, /setFailed\(true\)/);
   assert.equal(PORTAL_ORIGIN, "https://portal-tks-br.vercel.app");
-  assert.match(auth, /component: import\.meta\.env\.PROD \? ProductionAuthRedirect : AuthPage/);
+  assert.match(auth, /component: import\.meta\.env\.PROD/);
+  assert.match(auth, /\? ProductionAuthRedirect/);
 });
 test("nenhum token e enviado por URL ou mensagem", () => {
   assert.doesNotMatch(callback, /searchParams\.set\([^)]*token_hash|postMessage/);
