@@ -20,6 +20,17 @@ BEGIN
      OR v_definition LIKE '%''afastamento''%' THEN
     RAISE EXCEPTION 'GUARD_DATA_FUTURA_DIVERGENTE: revisar antes de aplicar';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_trigger
+    WHERE tgrelid = 'public.registros_horas'::regclass
+      AND tgname = 'guard_data_nao_futura'
+      AND tgenabled = 'O'
+      AND pg_get_triggerdef(oid) LIKE '%BEFORE INSERT OR UPDATE OF data%'
+      AND pg_get_triggerdef(oid) LIKE '%public.registros_horas%'
+  ) THEN
+    RAISE EXCEPTION 'TRIGGER_REGISTROS_HORAS_DIVERGENTE: revisar antes de aplicar';
+  END IF;
 END
 $preflight$;
 
@@ -59,9 +70,33 @@ BEGIN
 END;
 $function$;
 
--- Funcao de trigger nao deve ser chamada diretamente por clientes.
+-- Impede alteracoes posteriores em um afastamento futuro que transformem
+-- o registro em horas ou em classificacoes nao permitidas.
+-- Executado na mesma transacao; outras regras de conflito/RLS permanecem ativas.
+DROP TRIGGER guard_data_nao_futura ON public.registros_horas;
+CREATE TRIGGER guard_data_nao_futura
+  BEFORE INSERT OR UPDATE OF data, tipo_registro, falta_tipo,
+    horas_normais, horas_extras, ausencia
+  ON public.registros_horas
+  FOR EACH ROW EXECUTE FUNCTION public.guard_data_lancamento_nao_futura();
+
+-- Mantem as mesmas restricoes de EXECUTE da versao anterior.
 REVOKE ALL ON FUNCTION public.guard_data_lancamento_nao_futura()
   FROM PUBLIC, anon, authenticated;
+
+DO $postflight$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_trigger
+    WHERE tgrelid = 'public.registros_horas'::regclass
+      AND tgname = 'guard_data_nao_futura'
+      AND tgenabled = 'O'
+      AND pg_get_triggerdef(oid) LIKE '%UPDATE OF data, tipo_registro, falta_tipo, horas_normais, horas_extras, ausencia%'
+  ) THEN
+    RAISE EXCEPTION 'VALIDACAO_TRIGGER_FUTURO_FALHOU';
+  END IF;
+END
+$postflight$;
 
 COMMIT;
 
