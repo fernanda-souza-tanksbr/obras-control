@@ -52,6 +52,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CalendarioAfastamento } from "@/components/CalendarioAfastamento";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -841,28 +842,34 @@ export function AlocarPeriodoDialog({ obraId, obraNome }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>De</Label>
-                <Input
-                  key={permiteDataFutura ? "data-futura-liberada" : "data-futura-bloqueada"}
-                  type="date"
-                  max={permiteDataFutura ? undefined : today}
-                  value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
-                />
+                {tipoRegistro === "afastamento" ? (
+                  <CalendarioAfastamento label="De" value={dataInicio} onChange={setDataInicio} />
+                ) : (
+                  <Input
+                    type="date"
+                    max={permiteDataFutura ? undefined : today}
+                    value={dataInicio}
+                    onChange={(e) => setDataInicio(e.target.value)}
+                  />
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Até</Label>
-                <Input
-                  type="date"
-                  max={permiteDataFutura ? undefined : today}
-                  value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
-                />
+                {tipoRegistro === "afastamento" ? (
+                  <CalendarioAfastamento label="Até" value={dataFim} onChange={setDataFim} />
+                ) : (
+                  <Input
+                    type="date"
+                    max={permiteDataFutura ? undefined : today}
+                    value={dataFim}
+                    onChange={(e) => setDataFim(e.target.value)}
+                  />
+                )}
               </div>
             </div>
             {tipoRegistro === "afastamento" && (
               <p className="text-xs text-muted-foreground" role="status">
-                Datas futuras liberadas para Afastamento. Selecione o período nos calendários
-                ou digite as datas diretamente.
+                Datas futuras liberadas para Afastamento. Selecione as datas nos calendários.
               </p>
             )}
             <div className="rounded-md border bg-muted/30 p-3 text-sm">
