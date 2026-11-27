@@ -819,6 +819,8 @@ function AlocacoesPage() {
     if (!funcionarioSelecionadoExigeEspecialidade) form.setValue("especialidade_ajudante", null);
   }, [form, funcionarioSelecionadoExigeEspecialidade]);
   const watchTipoRegistro = form.watch("tipo_registro");
+  const watchFaltaTipo = form.watch("falta_tipo");
+  const permiteAfastamentoFuturo = watchTipoRegistro === "falta" && watchFaltaTipo === "afastamento";
   const ausenciaPlanejada = registroEhAusenciaPlanejada({ tipo_registro: watchTipoRegistro });
   const watchDataFim = form.watch("data_fim");
   useEffect(() => {
@@ -898,7 +900,9 @@ function AlocacoesPage() {
         if (error) throw new Error(mensagemErroRegistro(error));
         return { tipoRegistro: v.tipo_registro, faltaTipo: null, hn: 0, he: 0 };
       }
-      validarDataLancamento(v.data, "horas");
+      if (!(v.tipo_registro === "falta" && v.falta_tipo === "afastamento")) {
+        validarDataLancamento(v.data, "horas");
+      }
       const falta = v.tipo_registro === "falta";
       const calculo = falta
         ? null
@@ -1503,7 +1507,7 @@ function AlocacoesPage() {
                               <FormControl>
                                 <Input
                                   type="date"
-                                  max={ausenciaPlanejada ? undefined : today}
+                                  max={ausenciaPlanejada || permiteAfastamentoFuturo ? undefined : today}
                                   {...field}
                                   onChange={(event) => {
                                     field.onChange(event);
